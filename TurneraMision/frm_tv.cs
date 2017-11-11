@@ -63,11 +63,12 @@ namespace TurneraMision
             this.Show();
         }
 
-        
 
+        String mediaPath;
         private frm_tv()
         {
-            
+            mediaPath = Directory.GetCurrentDirectory() + "\\media";
+            if (!Directory.Exists(mediaPath)) { Directory.CreateDirectory(mediaPath); }
             InitializeComponent();
 
             System.Windows.Forms.DataGridViewCellStyle dgsS = new System.Windows.Forms.DataGridViewCellStyle();
@@ -88,13 +89,12 @@ namespace TurneraMision
             myWmp.Ctlenabled = false;
             myWmp.stretchToFit = true;
             myWmp.uiMode = "none"; // "invisible" "none" "mini" "full"            
-            myWmp.PlayStateChange += Wmp_PlayStateChange;
             myWmp.settings.mute = true;
             dgv_turnos.Enabled = false;
             dgv_turnos.RowsDefaultCellStyle.SelectionBackColor = System.Drawing.Color.White;
             dgv_turnos.RowsDefaultCellStyle.SelectionForeColor = System.Drawing.Color.Red;
             refreshGrid();
-
+            
         }
 
         public void refreshGrid() {
@@ -107,22 +107,40 @@ namespace TurneraMision
                 dgv_turnos.FirstDisplayedScrollingRowIndex = dgv_turnos.RowCount - 1;
         }
 
-        private void Wmp_PlayStateChange(object sender, _WMPOCXEvents_PlayStateChangeEvent e)
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/dd562460(v=vs.85).aspx
+        enum playStateChange : int 
         {
-            if (e.newState == 1) // Si se detuvo vuelve a empezar.
-                myWmp.Ctlcontrols.play();
+            Undefined = 0,
+            Stopped = 1,
+            Paused = 2,
+            Playing = 3,
+            ScanForward = 4,
+            ScanReverse = 5,
+            Buffering = 6,
+            Waiting = 7,
+            MediaEnded = 8,
+            Transitioning = 9,
+            Ready = 10,
+            Reconnecting = 11,
+            Last = 12,
         }
 
+        private void Wmp_PlayStateChange(object sender, _WMPOCXEvents_PlayStateChangeEvent e)
+        {
+            if (e.newState == 8) // Media Ended
+            {
+                myWmp.Ctlcontrols.play();
+            } 
+
+        }
+        
         private void Form1_Load(object sender, EventArgs e)
         {
-            String mediaPath = Directory.GetCurrentDirectory() + "\\media";
-            if (!Directory.Exists(mediaPath)) { Directory.CreateDirectory(mediaPath); }
-
+            myWmp.PlayStateChange += Wmp_PlayStateChange;
             foreach (string item in Directory.EnumerateFiles(mediaPath))
             {
                 IWMPMedia nueva = myWmp.newMedia(item);
                 myWmp.currentPlaylist.appendItem(nueva);
-                Console.WriteLine("Files {0}", item);
             }
             myWmp.Ctlcontrols.play();
         }
